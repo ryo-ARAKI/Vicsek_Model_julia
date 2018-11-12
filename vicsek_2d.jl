@@ -23,7 +23,12 @@ module  mod_param_var
         r_new::Array{Float64, 2}    # New position of particles
         θ_new::Array{Float64, 1}    # New angle of particles
     end
-end  # mod_param_var
+
+    mutable struct StatisticalValues
+        θ_ave::Float64  # Average of θ: Angle of particles
+        θ_var::Float64  # Variance of θ: Angle of particles
+    end
+end  # module mod_param_var
 
 
 """
@@ -150,6 +155,29 @@ module mod_vicsek_model
 end  # module mod_vicsek_model
 
 
+"""
+Module for analysing Vicsek model
+"""
+module mod_analysis
+    """
+    Calculate average and variance of direction of particles
+    """
+    function calc_ave_var_θ(param,θ)
+        θ_ave = 0.0
+        for i=1:param.N
+            θ_ave += θ[i]
+        end
+        θ_ave = θ_ave / param.N
+        θ_var = 0.0
+        for i=1:param.N
+            θ_var += (θ[i]-θ_ave) ^ 2
+        end
+        θ_var = θ_var / param.N
+        return θ_ave, θ_var
+    end
+end  # module mod_analysis
+
+
 ## Declare modules
 using .mod_param_var  # Define parameters and variables
 import .mod_vicsek_model:  # Definde time-integration of vicsek model
@@ -161,13 +189,15 @@ set_new_θ,
 set_new_r,
 set_periodic_bc,
 set_new_rθ
+import .mod_analysis:  # Define functions for analysis
+calc_ave_var_θ
 
 
 ## Set parameter
 N = 10
 R_0 = 0.05
 η = 0.05
-t_step = 1
+t_step = 10
 v0 = 0.02
 param_ = mod_param_var.Parameters(N,R_0,η,t_step,v0)
 
@@ -181,28 +211,35 @@ r_new = Array{Float64}(undef, param_.N, 2)
 θ_new = Array{Float64}(undef, param_.N)
 var_ = mod_param_var.Variables(r,θ,n_label,ψ,ξ,r_new,θ_new)
 
+## Set statistical values
+θ_ave = 0.0
+θ_var = 0.0
+sta_ = mod_param_var.StatisticalValues(θ_ave,θ_var)
+
 
 ## Main
 set_initial_condition(param_,var_)
 println(var_.r)  # Position
 println(var_.θ)  # Direction
 
-for t=1:t_step
+for t=1:param_.t_step
     set_neighbour_list(param_,var_)
-    println(var_.n_label[1,:])  # Neighbour list of particle 1
+    # println(var_.n_label[1,:])  # Neighbour list of particle 1
     set_neighbour_orientation(param_,var_)
-    println(var_.ψ)  # Neighbour orientation
+    # println(var_.ψ)  # Neighbour orientation
     set_white_noise(param_,var_)
-    println(var_.ξ)  # white noise
+    # println(var_.ξ)  # white noise
     set_new_θ(param_,var_)
-    println(var_.θ_new)  # Updated direction
+    # println(var_.θ_new)  # Updated direction
     set_new_r(param_,var_)
-    println(var_.r_new)  # Updated position
+    # println(var_.r_new)  # Updated position
     set_periodic_bc(param_,var_)
-    println(var_.r_new)  # Periodic b.c.-ensured updated position
+    # println(var_.r_new)  # Periodic b.c.-ensured updated position
     set_new_rθ(param_,var_)
-    println(var_.r)  # Updated position
-    println(var_.θ)  # Updated direction
+    # println(var_.r)  # Updated position
+    # println(var_.θ)  # Updated direction
+    sta_.θ_ave,sta_.θ_var = calc_ave_var_θ(param_,var_.θ)
+    println("θ ave:",sta_.θ_ave," ,θ var:",sta_.θ_var)
     #=
     アニメーション作成
     =#
