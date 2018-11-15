@@ -25,8 +25,7 @@ module  mod_param_var
     end
 
     mutable struct StatisticalValues
-        θ_ave::Float64  # Average of θ: Angle of particles
-        θ_var::Float64  # Variance of θ: Angle of particles
+        φ::Float64  # Average of θ: Angle of particles
     end
 end  # module mod_param_var
 
@@ -160,20 +159,17 @@ Module for analysing Vicsek model
 """
 module mod_analysis
     """
-    Calculate average and variance of direction of particles
+    Calculate average direction of particles φ
+        φ = 1/N Σ_{i=1}^N s_i^t
+        s_i^t is a unit direction vector, implemented as (cosθ,sinθ)
     """
-    function calc_ave_var_θ(param,θ)
-        θ_ave = 0.0
+    function calc_φ(param,θ)
+        tmp = 0.0
         for i=1:param.N
-            θ_ave += θ[i]
+            tmp += θ[i]
         end
-        θ_ave = θ_ave / param.N
-        θ_var = 0.0
-        for i=1:param.N
-            θ_var += (θ[i]-θ_ave) ^ 2
-        end
-        θ_var = θ_var / param.N
-        return θ_ave, θ_var
+        φ = tmp / param.N
+        return φ
     end
 end  # module mod_analysis
 
@@ -190,7 +186,7 @@ set_new_r,
 set_periodic_bc,
 set_new_rθ
 import .mod_analysis:  # Define functions for analysis
-calc_ave_var_θ
+calc_φ
 
 
 ## Set parameter
@@ -212,9 +208,8 @@ r_new = Array{Float64}(undef, param_.N, 2)
 var_ = mod_param_var.Variables(r,θ,n_label,ψ,ξ,r_new,θ_new)
 
 ## Set statistical values
-θ_ave = 0.0
-θ_var = 0.0
-sta_ = mod_param_var.StatisticalValues(θ_ave,θ_var)
+φ = 0.0
+sta_ = mod_param_var.StatisticalValues(φ)
 
 
 ## Main
@@ -238,9 +233,10 @@ for t=1:param_.t_step
     set_new_rθ(param_,var_)
     # println(var_.r)  # Updated position
     # println(var_.θ)  # Updated direction
-    sta_.θ_ave,sta_.θ_var = calc_ave_var_θ(param_,var_.θ)
-    println("θ ave:",sta_.θ_ave," ,θ var:",sta_.θ_var)
+    sta_.φ = calc_φ(param_,var_.θ)
+    println("φ:",sta_.φ)
     #=
+    θ_ave, θ_varの時系列グラフ作成
     アニメーション作成
     =#
 end
