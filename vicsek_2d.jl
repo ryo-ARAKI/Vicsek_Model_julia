@@ -166,12 +166,32 @@ module mod_analysis
     function calc_φ(param,θ)
         tmp = 0.0
         for i=1:param.N
-            tmp += θ[i]
+            tmp += θ[i]+π   # To ensure θ ∈ [0,2π]
         end
-        φ = tmp / param.N
+        φ = mod(tmp,π) / param.N
         return φ
     end
 end  # module mod_analysis
+
+
+"""
+Module for dat, image and movie generation
+"""
+module mod_output
+    using Plots
+    gr(
+        xlims = (0.0, 1.0),
+        ylims = (0.0, 1.0),
+        aspect_ratio = 1
+    )
+    """
+    Output snapshot image of particle distribution and direction
+    """
+    function out_snapimg(param,var,t)
+        scatter(var.r[:,1],var.r[:,2])
+        png("img/testfig_$(t).png")
+    end
+end  # module mod_output
 
 
 ## Declare modules
@@ -187,11 +207,13 @@ set_periodic_bc,
 set_new_rθ
 import .mod_analysis:  # Define functions for analysis
 calc_φ
+import .mod_output:  # Define functions for output data
+out_snapimg
 
 
 ## Set parameter
 N = 10
-R_0 = 0.05
+R_0 = 0.02
 η = 0.05
 t_step = 10
 v0 = 0.02
@@ -235,6 +257,7 @@ for t=1:param_.t_step
     # println(var_.θ)  # Updated direction
     sta_.φ = calc_φ(param_,var_.θ)
     println("φ:",sta_.φ)
+    out_snapimg(param_,var_,t)
     #=
     θ_ave, θ_varの時系列グラフ作成
     アニメーション作成
