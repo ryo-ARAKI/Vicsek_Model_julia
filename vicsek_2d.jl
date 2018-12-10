@@ -22,6 +22,7 @@ module  mod_param_var
         ξ::Array{Float64, 1}    # White noise for perturbation
         r_new::Array{Float64, 2}    # New position of particles
         θ_new::Array{Float64, 1}    # New angle of particles
+        n_sum::Array{Int64, 1}      # Number of nearby particles
     end
 
     mutable struct StatisticalValues
@@ -40,12 +41,14 @@ module mod_vicsek_model
     function set_initial_condition(param,var)
         var.r = rand(Float64, param.N, 2)
         θ_ = rand(Float64, param.N)
-        var.θ = 2π*θ_ .- π
+        var.θ = 2π*θ_  # [0,1] -> [0,2π]
     end
 
     """
-    Calculate distance between two particlesi and j,
+    Calculate distance between two particles i and j,
     if distance is below threshold R_0, n_label (neighbour_label) have true.
+    n_label of myself(tr(n_label)) is 1
+    Also, calculate number of neighbour particles and store in var.n_sum
     """
     function set_neighbour_list(param,var)
         #=
@@ -55,15 +58,19 @@ module mod_vicsek_model
         MPI
         =#
         for i=1:param.N
+            n_col = 0  # Number of colums of n_label[i,:]
             for j=1:param.N
                 dist = sqrt((var.r[i,1]-var.r[j,1])^2+(var.r[i,2]-var.r[j,2])^2)
                 if dist <= param.R_0
                     var.n_label[i,j] = true
+                    n_col += 1
                 else
                     var.n_label[i,j] = false
                 end
             end
+            var.n_sum[i] = n_col
         end
+        # println("num. of neighbour=", n_sum.-1)  # exept myself
     end
 
     """
@@ -72,7 +79,7 @@ module mod_vicsek_model
         ψ = Arg[Σ_j n_ij θ_j].
     """
     function set_neighbour_orientation(param,var)
-        var.ψ = zeros(param.N)
+        # var.ψ = zeros(param.N)
         #=
         この処理がN^2を要する
         要高速化
@@ -80,9 +87,11 @@ module mod_vicsek_model
         MPI
         =#
         for i=1:param.N
+            tmp = 0.0
             for j=1:param.N
-                var.ψ[i] = var.ψ[i] + var.n_label[i,j]*var.θ[j]
+                tmp += var.n_label[i,j]*var.θ[j]
             end
+            var.ψ[i] = tmp/var.n_sum[i]
         end
     end
 
@@ -90,7 +99,8 @@ module mod_vicsek_model
     Calculate white noise array ξ.
     """
     function set_white_noise(param,var)
-        var.ξ = rand(Float64, param.N)
+        ξ_ = rand(Float64, param.N)
+        var.ξ = 2π .* ξ_  # [0,1] -> [0,2π]
     end
 
     """
@@ -98,17 +108,9 @@ module mod_vicsek_model
         θ_new = ψ + ηξ.
     """
     function set_new_θ(param,var)
-        var.θ_new = var.ψ .+ param.η*var.ξ
-        # Try to ensure θ_new have [-π,π] value
-        #=
-        modなどで代替&簡略化できないか?
-        =#
+        var.θ_new = var.ψ .+ (param.η .* var.ξ)
         for i=1:param.N
-            if var.θ_new[i] > π
-                var.θ_new[i] -= π
-            elseif var.θ_new[i] < -π
-                var.θ_new[i] += π
-            end
+            var.θ_new[i] = mod2pi(var.θ_new[i])  # ensure θ_new ∈ [0,2π]
         end
     end
 
@@ -120,9 +122,6 @@ module mod_vicsek_model
         Δt = v_0 = 1
     """
     function set_new_r(param,var)
-        #=
-        forループ使わずに書きたい
-        =#
         for i=1:param.N
             var.r_new[i,1] = var.r[i,1] + param.v0*cos(var.θ_new[i])
             var.r_new[i,2] = var.r[i,2] + param.v0*sin(var.θ_new[i])
@@ -166,9 +165,9 @@ module mod_analysis
     function calc_φ(param,θ)
         tmp = 0.0
         for i=1:param.N
-            tmp += θ[i]+π   # To ensure θ ∈ [0,2π]
+            tmp += θ[i]   # To ensure θ ∈ [0,2π]
         end
-        φ = mod(tmp,π) / param.N
+        φ = mod2pi(tmp) / param.N
         return φ
     end
 end  # module mod_analysis
@@ -182,7 +181,8 @@ module mod_output
     gr(
         xlims = (0.0, 1.0),
         ylims = (0.0, 1.0),
-        aspect_ratio = 1
+        aspect_ratio = 1,
+        legend = false
     )
     """
     Output snapshot image of particle distribution and direction
@@ -227,7 +227,8 @@ n_label = BitArray(undef, param_.N, param_.N)
 ξ = Array{Float64}(undef, param_.N)
 r_new = Array{Float64}(undef, param_.N, 2)
 θ_new = Array{Float64}(undef, param_.N)
-var_ = mod_param_var.Variables(r,θ,n_label,ψ,ξ,r_new,θ_new)
+n_sum = Array{Int64}(undef, param_.N)
+var_ = mod_param_var.Variables(r,θ,n_label,ψ,ξ,r_new,θ_new,n_sum)
 
 ## Set statistical values
 φ = 0.0
@@ -236,8 +237,10 @@ sta_ = mod_param_var.StatisticalValues(φ)
 
 ## Main
 set_initial_condition(param_,var_)
-println(var_.r)  # Position
-println(var_.θ)  # Direction
+# println("r_1= ",var_.r[:,1])  # Position
+# println("r_2= ",var_.r[:,2])  # Position
+# println("θ= ",var_.θ)  # Direction
+# println("")
 
 for t=1:param_.t_step
     set_neighbour_list(param_,var_)
@@ -253,10 +256,11 @@ for t=1:param_.t_step
     set_periodic_bc(param_,var_)
     # println(var_.r_new)  # Periodic b.c.-ensured updated position
     set_new_rθ(param_,var_)
-    # println(var_.r)  # Updated position
-    # println(var_.θ)  # Updated direction
+    # println("r= ",var_.r)  # Updated position
+    # println("θ= ",var_.θ)  # Updated direction
+    # println("")
     sta_.φ = calc_φ(param_,var_.θ)
-    println("φ:",sta_.φ)
+    # println("itr= ",t,", φ= ",sta_.φ)
     out_snapimg(param_,var_,t)
     #=
     θ_ave, θ_varの時系列グラフ作成
