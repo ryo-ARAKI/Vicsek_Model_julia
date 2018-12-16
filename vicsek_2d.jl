@@ -178,23 +178,59 @@ Module for dat, image and movie generation
 """
 module mod_output
     using Plots
-    gr(
-        xlims = (0.0, 1.0),
-        ylims = (0.0, 1.0),
-        aspect_ratio = 1,
-        legend = false
-    )
     """
     Output snapshot image of particle distribution and direction
     """
-    function out_snapimg(param,var,t)
-        scatter(var.r[:,1],var.r[:,2])
-        png("img/testfig_$(t).png")
+    function plot_scatter(param,var,t,flag_out)
+        #=
+        scatter(
+            var.r[:,1],var.r[:,2],
+            xaxis=false,
+            yaxis=false,
+            size=(640,640))
+        =#
+        u = Array{Float64}(undef, param.N)
+        v = Array{Float64}(undef, param.N)
+        for i=1:param.N
+            u[i] = 0.05 * cos(var.θ[i])
+            v[i] = 0.05 * sin(var.θ[i])
+        end
+        quiver(
+        var.r[:,1], var.r[:,2],
+        quiver=(u[:], v[:])
+        )
+        if flag_out == true
+            str_t = lpad(string(t), 5, "0")  # iteration number in 5 digit, left-padded string
+            png("img/testfig_$(str_t).png")
+        end
+    end
+
+    function make_gif(param,anim)
+        N = 200
+        R_0 = 0.06
+        η = 0.05
+        str_N = lpad(string(param.N), 3, "0")
+        str_R = lpad(string(param.R_0), 3, "0")
+        str_η = lpad(string(param.η), 3, "0")
+        gif(
+            anim,
+            "wave_$(str_N)_$(str_R)_$(str_η).gif",
+            fps=30)
     end
 end  # module mod_output
 
 
 ## Declare modules
+using ProgressMeter
+using Plots
+gr(
+    xlims = (0.0, 1.0),
+    ylims = (0.0, 1.0),
+    aspect_ratio = 1,
+    legend = false
+    # xaxis=nothing,
+    # yaxis=nothing
+)
 using .mod_param_var  # Define parameters and variables
 import .mod_vicsek_model:  # Definde time-integration of vicsek model
 set_initial_condition,
@@ -208,12 +244,13 @@ set_new_rθ
 import .mod_analysis:  # Define functions for analysis
 calc_φ
 import .mod_output:  # Define functions for output data
-out_snapimg
+plot_scatter,
+make_gif
 
 
 ## Set parameter
-N = 10
-R_0 = 0.02
+N = 200
+R_0 = 0.06
 η = 0.05
 t_step = 10
 v0 = 0.02
@@ -242,7 +279,8 @@ set_initial_condition(param_,var_)
 # println("θ= ",var_.θ)  # Direction
 # println("")
 
-for t=1:param_.t_step
+progress = Progress(param_.t_step)
+anim = @animate for t=1:param_.t_step
     set_neighbour_list(param_,var_)
     # println(var_.n_label[1,:])  # Neighbour list of particle 1
     set_neighbour_orientation(param_,var_)
@@ -261,9 +299,9 @@ for t=1:param_.t_step
     # println("")
     sta_.φ = calc_φ(param_,var_.θ)
     # println("itr= ",t,", φ= ",sta_.φ)
-    out_snapimg(param_,var_,t)
-    #=
-    θ_ave, θ_varの時系列グラフ作成
-    アニメーション作成
-    =#
+    plot_scatter(param_,var_,t,true)
+    next!(progress)
 end
+
+# make_gif(param_,anim)
+println("")
