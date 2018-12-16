@@ -41,7 +41,7 @@ module mod_vicsek_model
     function set_initial_condition(param,var)
         var.r = rand(Float64, param.N, 2)
         θ_ = rand(Float64, param.N)
-        var.θ = 2π*θ_  # [0,1] -> [0,2π]
+        var.θ = 2π*θ_ .- π  # [0,1] -> [-π,π]
     end
 
     """
@@ -100,7 +100,7 @@ module mod_vicsek_model
     """
     function set_white_noise(param,var)
         ξ_ = rand(Float64, param.N)
-        var.ξ = 2π .* ξ_  # [0,1] -> [0,2π]
+        var.ξ = 2π .* ξ_  .- π # [0,1] -> [-π,π]
     end
 
     """
@@ -108,9 +108,8 @@ module mod_vicsek_model
         θ_new = ψ + ηξ.
     """
     function set_new_θ(param,var)
-        var.θ_new = var.ψ .+ (param.η .* var.ξ)
         for i=1:param.N
-            var.θ_new[i] = mod2pi(var.θ_new[i])  # ensure θ_new ∈ [0,2π]
+            var.θ_new[i] = var.ψ[i] + param.η * var.ξ[i]  # ensure θ_new ∈ [0,2π]
         end
     end
 
@@ -165,9 +164,9 @@ module mod_analysis
     function calc_φ(param,θ)
         tmp = 0.0
         for i=1:param.N
-            tmp += θ[i]   # To ensure θ ∈ [0,2π]
+            tmp += θ[i]
         end
-        φ = mod2pi(tmp) / param.N
+        φ = tmp / param.N
         return φ
     end
 end  # module mod_analysis
@@ -201,7 +200,10 @@ module mod_output
         )
         if flag_out == true
             str_t = lpad(string(t), 5, "0")  # iteration number in 5 digit, left-padded string
-            png("img/testfig_$(str_t).png")
+            str_N = lpad(string(param.N), 3, "0")
+            str_R = lpad(string(param.R_0), 3, "0")
+            str_η = lpad(string(param.η), 3, "0")
+            png("img/wave_N$(str_N)_R$(str_R)_eta$(str_η)_$(str_t).png")
         end
     end
 
@@ -214,8 +216,8 @@ module mod_output
         str_η = lpad(string(param.η), 3, "0")
         gif(
             anim,
-            "wave_$(str_N)_$(str_R)_$(str_η).gif",
-            fps=30)
+            "wave_N$(str_N)_R$(str_R)_eta$(str_η).gif",
+            fps=20)
     end
 end  # module mod_output
 
@@ -250,10 +252,10 @@ make_gif
 
 ## Set parameter
 N = 200
-R_0 = 0.06
-η = 0.05
-t_step = 10
-v0 = 0.02
+R_0 = 0.01
+η = 0.03
+t_step = 200
+v0 = 0.05
 param_ = mod_param_var.Parameters(N,R_0,η,t_step,v0)
 
 ## Set variables
@@ -274,34 +276,21 @@ sta_ = mod_param_var.StatisticalValues(φ)
 
 ## Main
 set_initial_condition(param_,var_)
-# println("r_1= ",var_.r[:,1])  # Position
-# println("r_2= ",var_.r[:,2])  # Position
-# println("θ= ",var_.θ)  # Direction
-# println("")
 
 progress = Progress(param_.t_step)
 anim = @animate for t=1:param_.t_step
     set_neighbour_list(param_,var_)
-    # println(var_.n_label[1,:])  # Neighbour list of particle 1
     set_neighbour_orientation(param_,var_)
-    # println(var_.ψ)  # Neighbour orientation
     set_white_noise(param_,var_)
-    # println(var_.ξ)  # white noise
     set_new_θ(param_,var_)
-    # println(var_.θ_new)  # Updated direction
     set_new_r(param_,var_)
-    # println(var_.r_new)  # Updated position
     set_periodic_bc(param_,var_)
-    # println(var_.r_new)  # Periodic b.c.-ensured updated position
     set_new_rθ(param_,var_)
-    # println("r= ",var_.r)  # Updated position
-    # println("θ= ",var_.θ)  # Updated direction
-    # println("")
     sta_.φ = calc_φ(param_,var_.θ)
     # println("itr= ",t,", φ= ",sta_.φ)
-    plot_scatter(param_,var_,t,true)
+    plot_scatter(param_,var_,t,false)
     next!(progress)
 end
 
-# make_gif(param_,anim)
+make_gif(param_,anim)
 println("")
