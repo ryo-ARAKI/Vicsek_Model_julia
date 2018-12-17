@@ -15,6 +15,7 @@ module  mod_param_var
     end
 
     mutable struct Variables
+        itr::Int64    # Number of iteration
         r::Array{Float64, 2}    # Position of particles
         θ::Array{Float64, 1}    # Angle of particles
         n_label::Array{Bool, 2} # Neighbourhood label
@@ -185,8 +186,9 @@ module mod_output
     """
     Output snapshot image of particle distribution and direction
     """
-    function plot_scatter(param,var,t,flag_out)
+    function plot_scatter_φ(param,var,stat,flag_out)
         #=
+        # Scatter plot of position of particles
         scatter(
             var.r[:,1],var.r[:,2],
             xaxis=false,
@@ -199,11 +201,28 @@ module mod_output
             u[i] = 0.05 * cos(var.θ[i])
             v[i] = 0.05 * sin(var.θ[i])
         end
-        quiver(
-        var.r[:,1], var.r[:,2],
-        quiver=(u[:], v[:]),
-        aspect_ratio = 1,
+        p1 = quiver(
+            var.r[:,1], var.r[:,2],
+            quiver=(u[:], v[:]),
+            aspect_ratio = 1,
+            xlims = (0.0, 1.0),
+            ylims = (0.0, 1.0),
+            xaxis=nothing,
+            yaxis=nothing
         )
+        #=
+        quiverのベクトルのスタイルを変えたい(ベクトルのノルムに合わせて幅を変えたい)
+        https://discourse.julialang.org/t/plots-jl-arrows-style-in-quiver/13659/2
+        を見ると未実装らしい??
+        =#
+        p2 = plot(
+            stat.φ_[1:var.itr],
+            xlims = (0, param.t_step),
+            ylims = (0, 1.1),
+            xaxis = ("Time step"),
+            yaxis = ("Orientation parameter"),
+            linewidth = 2)
+        plot(p1,p2,size=(1260,480))
         if flag_out == true
             str_t = lpad(string(t), 5, "0")  # iteration number in 5 digit, left-padded string
             str_N = lpad(string(param.N), 3, "0")
@@ -213,35 +232,33 @@ module mod_output
         end
     end
 
+    """
+    """
     function make_gif(param,anim)
-        N = 200
-        R_0 = 0.06
-        η = 0.05
         str_N = lpad(string(param.N), 3, "0")
         str_R = lpad(string(param.R_0), 3, "0")
         str_η = lpad(string(param.η), 3, "0")
         gif(
             anim,
-            "wave_N$(str_N)_R$(str_R)_eta$(str_η).gif",
+            "wave_N=$(str_N)_R=$(str_R)_eta=$(str_η).gif",
             fps=20)
     end
 
-    function plot_φ(param,φ_)
-        gr(
+    function plot_φ(param,var,stat)
+        plot(
+            stat.φ_[1:var.itr],
             xlims = (0, param.t_step),
             ylims = (0, 1.1),
-            legend = false,
-            # xaxis=nothing,
-            # yaxis=nothing
-        )
-        plot(φ_)
+            xaxis = ("Time step"),
+            yaxis = ("Orientation parameter"),
+            linewidth = 2)
         xaxis!("Time step")
         yaxis!("Modulo of order parameter")
         str_N = lpad(string(param.N), 3, "0")
         str_R = lpad(string(param.R_0), 3, "0")
         str_η = lpad(string(param.η), 3, "0")
         str_t = lpad(string(param.t_step), 4, "0")
-        png("phi_N$(str_N)_R$(str_R)_eta$(str_η)_$(str_t).png")
+        png("phi_N=$(str_N)_R=$(str_R)_eta=$(str_η)_$(str_t)step.png")
     end
 end  # module mod_output
 
@@ -250,12 +267,7 @@ end  # module mod_output
 using ProgressMeter
 using Plots
 gr(
-    xlims = (0.0, 1.0),
-    ylims = (0.0, 1.0),
-    # aspect_ratio = 1,
-    legend = false
-    # xaxis=nothing,
-    # yaxis=nothing
+    legend = false  # Default setting for all figures
 )
 using .mod_param_var  # Define parameters and variables
 import .mod_vicsek_model:  # Definde time-integration of vicsek model
@@ -270,7 +282,7 @@ set_new_rθ
 import .mod_analysis:  # Define functions for analysis
 calc_φ
 import .mod_output:  # Define functions for output data
-plot_scatter,
+plot_scatter_φ,
 make_gif,
 plot_φ
 
@@ -278,12 +290,13 @@ plot_φ
 ## Set parameter
 N = 200
 R_0 = 0.01
-η = 0.5
+η = 0.03
 t_step = 200
 v0 = 0.05
 param_ = mod_param_var.Parameters(N,R_0,η,t_step,v0)
 
 ## Set variables
+itr = 1
 r = Array{Float64}(undef, param_.N, 2)
 θ = Array{Float64}(undef, param_.N)
 n_label = BitArray(undef, param_.N, param_.N)
@@ -292,7 +305,7 @@ n_label = BitArray(undef, param_.N, param_.N)
 r_new = Array{Float64}(undef, param_.N, 2)
 θ_new = Array{Float64}(undef, param_.N)
 n_sum = Array{Int64}(undef, param_.N)
-var_ = mod_param_var.Variables(r,θ,n_label,ψ,ξ,r_new,θ_new,n_sum)
+var_ = mod_param_var.Variables(itr,r,θ,n_label,ψ,ξ,r_new,θ_new,n_sum)
 
 ## Set statistical values
 φ = Array{Float64}(undef, param_.t_step, 2)
@@ -304,7 +317,7 @@ sta_ = mod_param_var.StatisticalValues(φ,φ_)
 set_initial_condition(param_,var_)
 
 progress = Progress(param_.t_step)
-anim = @animate for t=1:param_.t_step
+anim = @animate for var_.itr=1:param_.t_step
     set_neighbour_list(param_,var_)
     set_neighbour_orientation(param_,var_)
     set_white_noise(param_,var_)
@@ -312,13 +325,13 @@ anim = @animate for t=1:param_.t_step
     set_new_r(param_,var_)
     set_periodic_bc(param_,var_)
     set_new_rθ(param_,var_)
-    sta_.φ[t,:], sta_.φ_[t] = calc_φ(param_,var_.θ)
-    # println("itr=",t, " φ[1]=", sta_.φ[t,1], " φ[2]=",sta_.φ[t,2], " φ_=",sta_.φ_[t])
-    plot_scatter(param_,var_,t,false)
+    sta_.φ[var_.itr,:], sta_.φ_[var_.itr] = calc_φ(param_,var_.θ)
+    # println("itr=",var_.itr, " φ[1]=", sta_.φ[var_.itr,1], " φ[2]=",sta_.φ[var_.itr,2], " φ_=",sta_.φ_[var_.itr])
+    plot_scatter_φ(param_,var_,sta_,false)
     next!(progress)
 end
 
 make_gif(param_,anim)
-plot_φ(param_,sta_.φ_)
+plot_φ(param_,var_,sta_)
 println("")
 println("time averaged φ_=",sum(sta_.φ_/param_.t_step))
