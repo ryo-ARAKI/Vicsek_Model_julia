@@ -260,6 +260,26 @@ module mod_output
         str_t = lpad(string(param.t_step), 4, "0")
         png("img/phi_N=$(str_N)_R=$(str_R)_eta=$(str_η)_$(str_t)step.png")
     end
+
+    """
+    Plot time-averaged φ_ versus noise amplitude η
+    """
+    function plot_η_φ()
+        plot(
+            η[1:15],
+            φ[1:15],
+            marker= (
+                :circle,  # shape of marker
+                8,  # size of marker
+                0  # transparency of marker
+                # stroke(0,:white)  # stroke of marker
+                ),
+            linestyle = :solid,
+            xaxis = ("Noise amplitude eta"),
+            yaxis = ("Time-averaged orientation parameter varphi"),
+            linewidth = 2)
+        png("img/eta_phi.png")
+    end
 end  # module mod_output
 
 

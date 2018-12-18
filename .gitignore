@@ -1,3 +1,4 @@
-img/
 *.gif
 *.png
+*.svg
+plot.jl
