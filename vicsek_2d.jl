@@ -224,7 +224,7 @@ module mod_output
             linewidth = 2)
         plot(p1,p2,size=(1260,480))
         if flag_out == true
-            str_t = lpad(string(t), 5, "0")  # iteration number in 5 digit, left-padded string
+            str_t = lpad(string(var.itr), 5, "0")  # iteration number in 5 digit, left-padded string
             str_N = lpad(string(param.N), 3, "0")
             str_R = lpad(string(param.R_0), 3, "0")
             str_η = lpad(string(param.η), 3, "0")
@@ -240,8 +240,8 @@ module mod_output
         str_η = lpad(string(param.η), 3, "0")
         gif(
             anim,
-            "wave_N=$(str_N)_R=$(str_R)_eta=$(str_η).gif",
-            fps=20)
+            "img/wave_N=$(str_N)_R=$(str_R)_eta=$(str_η).gif",
+            fps=10)
     end
 
     function plot_φ(param,var,stat)
@@ -258,7 +258,7 @@ module mod_output
         str_R = lpad(string(param.R_0), 3, "0")
         str_η = lpad(string(param.η), 3, "0")
         str_t = lpad(string(param.t_step), 4, "0")
-        png("phi_N=$(str_N)_R=$(str_R)_eta=$(str_η)_$(str_t)step.png")
+        png("img/phi_N=$(str_N)_R=$(str_R)_eta=$(str_η)_$(str_t)step.png")
     end
 end  # module mod_output
 
@@ -317,6 +317,7 @@ sta_ = mod_param_var.StatisticalValues(φ,φ_)
 set_initial_condition(param_,var_)
 
 progress = Progress(param_.t_step)
+# for var_.itr=1:param_.t_step
 anim = @animate for var_.itr=1:param_.t_step
     set_neighbour_list(param_,var_)
     set_neighbour_orientation(param_,var_)
