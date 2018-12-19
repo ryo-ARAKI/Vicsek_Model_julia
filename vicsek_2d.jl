@@ -187,28 +187,26 @@ module mod_output
     Output snapshot image of particle distribution and direction
     """
     function plot_scatter_φ(param,var,stat,flag_out)
-        #=
-        # Scatter plot of position of particles
-        scatter(
-            var.r[:,1],var.r[:,2],
-            xaxis=false,
-            yaxis=false,
-            size=(640,640))
-        =#
         u = Array{Float64}(undef, param.N)
         v = Array{Float64}(undef, param.N)
         for i=1:param.N
             u[i] = 0.05 * cos(var.θ[i])
             v[i] = 0.05 * sin(var.θ[i])
         end
-        p1 = quiver(
+        p1 = quiver(  # Vector field
             var.r[:,1], var.r[:,2],
             quiver=(u[:], v[:]),
             aspect_ratio = 1,
             xlims = (0.0, 1.0),
             ylims = (0.0, 1.0),
             xaxis=nothing,
-            yaxis=nothing
+            yaxis=nothing,
+            color=1
+        )
+        p1! = scatter!(  # Position of particles
+            var.r[:,1],var.r[:,2],
+            markerstrokewidth = 0,
+            color=1  # Same color as quiver
         )
         #=
         quiverのベクトルのスタイルを変えたい(ベクトルのノルムに合わせて幅を変えたい)
