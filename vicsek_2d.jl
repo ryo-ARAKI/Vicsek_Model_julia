@@ -62,7 +62,12 @@ module mod_vicsek_model
         for i=1:param.N
             n_col = 0  # Number of colums of n_label[i,:]
             for j=1:param.N
-                dist = sqrt((var.r[i,1]-var.r[j,1])^2+(var.r[i,2]-var.r[j,2])^2)
+                # Calculate distance between two particles
+                dx = abs(var.r[i,1] - var.r[j,1])
+                dx = min(dx, 1.0 - dx)
+                dy = abs(var.r[i,2] - var.r[j,2])
+                dy = min(dy, 1.0 - dy)
+                dist = hypot(dx, dy)
                 if dist <= param.R_0
                     var.n_label[i,j] = true
                     n_col += 1
@@ -89,11 +94,12 @@ module mod_vicsek_model
         MPI
         =#
         for i=1:param.N
-            tmp = 0.0
+            tmpx = tmpy = 0.0
             for j=1:param.N
-                tmp += var.n_label[i,j]*var.θ[j]
+                tmpx += var.n_label[i,j] * cos(var.θ[j])
+                tmpy += var.n_label[i,j] * sin(var.θ[j])
             end
-            var.ψ[i] = tmp/var.n_sum[i]
+            var.ψ[i] = atan(tmpy, tmpx)
         end
     end
 
@@ -111,7 +117,7 @@ module mod_vicsek_model
     """
     function set_new_θ(param,var)
         for i=1:param.N
-            var.θ_new[i] = var.ψ[i] + param.η * var.ξ[i]  # ensure θ_new ∈ [0,2π]
+            var.θ_new[i] = var.ψ[i] + param.η * var.ξ[i]  # ensure θ_new ∈ [-π,π]
         end
     end
 
@@ -307,9 +313,9 @@ plot_φ
 
 ## Set parameter
 N = 200
-R_0 = 0.01
-η = 0.03
-t_step = 200
+R_0 = 0.03
+η = 0.4
+t_step = 190
 v0 = 0.05
 param_ = mod_param_var.Parameters(N,R_0,η,t_step,v0)
 
