@@ -43,6 +43,7 @@ end  # module mod_param_var
 Module for Vicsek model time integration
 """
 module mod_vicsek_model
+using Statistics
 
 """
 Initialise position of particles with [0,1]×[0,1] random number.
@@ -72,9 +73,9 @@ function set_neighbour_list(consts, var)
         for j=1:consts.N
             # Calculate distance between two particles
             dx = abs(var.r[i,1] - var.r[j,1])
-            dx = min(dx, 1.0 - dx)
+            dx = min(dx, consts.xrange - dx)
             dy = abs(var.r[i,2] - var.r[j,2])
-            dy = min(dy, 1.0 - dy)
+            dy = min(dy, consts.xrange - dy)
             dist = hypot(dx, dy)
             if dist <= 1.0
                 var.n_label[i,j] = true
@@ -85,7 +86,7 @@ function set_neighbour_list(consts, var)
         end
         var.n_sum[i] = n_col
     end
-    # println("num. of neighbour=", n_sum.-1)  # exept myself
+    # println("average % of num. of neighbour=", mean(var.n_sum)/consts.N * 100.0)
 end
 
 """
