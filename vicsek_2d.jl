@@ -113,8 +113,8 @@ end
 """
 Calculate white noise array ξ.
 """
-function set_white_noise(param,var)
-    ξ_ = rand(Float64, param.N)
+function set_white_noise(consts, var)
+    ξ_ = rand(Float64, consts.N)
     var.ξ = 2π .* ξ_  .- π # [0,1] -> [-π,π]
 end
 
@@ -365,7 +365,7 @@ progress = Progress(const_.t_step)
 anim = @animate for var_.itr=1:const_.t_step
     set_neighbour_list(const_, var_)
     set_neighbour_orientation(const_, var_)
-    set_white_noise(param_,var_)
+    set_white_noise(const_, var_)
     set_new_θ(param_,var_)
     set_new_r(param_,var_)
     set_periodic_bc(param_,var_)
