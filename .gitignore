@@ -2,3 +2,5 @@
 *.png
 *.svg
 plot.jl
+img/
+dat/
