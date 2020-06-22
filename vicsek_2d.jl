@@ -145,8 +145,8 @@ end
 """
 Ensure periodic boundary condition
 """
-function set_periodic_bc(param,var)
-    for i=1:param.N
+function set_periodic_bc(consts, var)
+    for i=1:consts.N
         for j=1:2
             if var.r_new[i,j] > 1.0
                 var.r_new[i,j] -= 1.0
@@ -160,7 +160,7 @@ end
 """
 Update r & θ
 """
-function set_new_rθ(param,var)
+function set_new_rθ(var)
     var.r = var.r_new
     var.θ = var.θ_new
 end
@@ -368,8 +368,8 @@ anim = @animate for var_.itr=1:const_.t_step
     set_white_noise(const_, var_)
     set_new_θ(param_, const_, var_)
     set_new_r(param_, const_, var_)
-    set_periodic_bc(param_,var_)
-    set_new_rθ(param_,var_)
+    set_periodic_bc(const_, var_)
+    set_new_rθ(var_)
     sta_.φ[var_.itr,:], sta_.φ_[var_.itr] = calc_φ(param_,var_.θ)
     # println("itr=",var_.itr, " φ[1]=", sta_.φ[var_.itr,1], " φ[2]=",sta_.φ[var_.itr,2], " φ_=",sta_.φ_[var_.itr])
     plot_scatter_φ(param_,var_,sta_,false)
