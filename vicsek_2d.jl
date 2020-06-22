@@ -8,11 +8,15 @@ Module for parameters and variables
 module  mod_param_var
 
 struct Parameters
-    N::Int64  # Number of particles
-    R_0::Float64  # Neighbour region threshold
+    ρ::Float64  # Number of particles per unit area
     η::Float64  # Coefficient of white noise
-    t_step::Int64 # Total iteration steps
     v0::Float64  # Velocity of particle (same for all particles)
+end
+
+struct Constants
+    xrange::Float64  # Actual computation domain size
+    N::Int64  # Actual number of particle
+    t_step::Int64  # Total time steps
 end
 
 mutable struct Variables
@@ -318,37 +322,47 @@ import .mod_output:  # Define functions for output data
 
 
 ## Set parameter
-N = 200
-R_0 = 0.03
-η = 0.4
-t_step = 190
-v0 = 0.05
-param_ = mod_param_var.Parameters(N,R_0,η,t_step,v0)
+### Control parameters
+ρ = 100.0  # Number of particles per unit area
+η = 0.4  # Noise amplitude
+v0 = 0.05  # Velocity of particles
+param_ = mod_param_var.Parameters(ρ, η, v0)
+
+### Other constants (defined by parameters)
+xrange = 1.0  # Actual computation domain size
+N = ρ * xrange^2  # Actual number of particle
+t_step = 200
+const_ = mod_param_var.Constants(xrange, N, t_step)
 
 ## Set variables
 itr = 1
-r = Array{Float64}(undef, param_.N, 2)
-θ = Array{Float64}(undef, param_.N)
-n_label = BitArray(undef, param_.N, param_.N)
-ψ = Array{Float64}(undef, param_.N)
-ξ = Array{Float64}(undef, param_.N)
-r_new = Array{Float64}(undef, param_.N, 2)
-θ_new = Array{Float64}(undef, param_.N)
-n_sum = Array{Int64}(undef, param_.N)
-var_ = mod_param_var.Variables(itr,r,θ,n_label,ψ,ξ,r_new,θ_new,n_sum)
+r = Array{Float64}(undef, const_.N, 2)
+θ = Array{Float64}(undef, const_.N)
+n_label = BitArray(undef, const_.N, const_.N)
+ψ = Array{Float64}(undef, const_.N)
+ξ = Array{Float64}(undef, const_.N)
+r_new = Array{Float64}(undef, const_.N, 2)
+θ_new = Array{Float64}(undef, const_.N)
+n_sum = Array{Int64}(undef, const_.N)
+var_ = mod_param_var.Variables(
+    itr,
+    r, θ,
+    n_label, ψ, ξ,
+    r_new, θ_new, n_sum
+)
 
 ## Set statistical values
-φ = Array{Float64}(undef, param_.t_step, 2)
-φ_ = Array{Float64}(undef, param_.t_step)
+φ = Array{Float64}(undef, const_.t_step, 2)
+φ_ = Array{Float64}(undef, const_.t_step)
 sta_ = mod_param_var.StatisticalValues(φ,φ_)
 
 
 ## Main
 set_initial_condition(param_,var_)
 
-progress = Progress(param_.t_step)
-# for var_.itr=1:param_.t_step
-anim = @animate for var_.itr=1:param_.t_step
+progress = Progress(const_.t_step)
+# for var_.itr=1:const_.t_step
+anim = @animate for var_.itr=1:const_.t_step
     set_neighbour_list(param_,var_)
     set_neighbour_orientation(param_,var_)
     set_white_noise(param_,var_)
@@ -365,4 +379,4 @@ end
 make_gif(param_,anim)
 plot_φ(param_,var_,sta_)
 println("")
-println("time averaged φ_=",sum(sta_.φ_/param_.t_step))
+println("time averaged φ_=",sum(sta_.φ_/const_.t_step))
