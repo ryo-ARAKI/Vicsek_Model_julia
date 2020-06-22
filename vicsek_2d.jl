@@ -122,8 +122,8 @@ end
 Calculate θ at time t+Δt: θ_new
     θ_new = ψ + ηξ.
 """
-function set_new_θ(param,var)
-    for i=1:param.N
+function set_new_θ(param, consts, var)
+    for i=1:consts.N
         var.θ_new[i] = var.ψ[i] + param.η * var.ξ[i]  # ensure θ_new ∈ [-π,π]
     end
 end
@@ -135,8 +135,8 @@ Calculate r at time t+Δt: r_new
     y_new = y + Δt*v_0*sin(θ_new)
     Δt = v_0 = 1
 """
-function set_new_r(param,var)
-    for i=1:param.N
+function set_new_r(param, consts, var)
+    for i=1:consts.N
         var.r_new[i,1] = var.r[i,1] + param.v0*cos(var.θ_new[i])
         var.r_new[i,2] = var.r[i,2] + param.v0*sin(var.θ_new[i])
     end
@@ -366,8 +366,8 @@ anim = @animate for var_.itr=1:const_.t_step
     set_neighbour_list(const_, var_)
     set_neighbour_orientation(const_, var_)
     set_white_noise(const_, var_)
-    set_new_θ(param_,var_)
-    set_new_r(param_,var_)
+    set_new_θ(param_, const_, var_)
+    set_new_r(param_, const_, var_)
     set_periodic_bc(param_,var_)
     set_new_rθ(param_,var_)
     sta_.φ[var_.itr,:], sta_.φ_[var_.itr] = calc_φ(param_,var_.θ)
