@@ -60,23 +60,23 @@ if distance is below threshold R_0, n_label (neighbour_label) have true.
 n_label of myself(tr(n_label)) is 1
 Also, calculate number of neighbour particles and store in var.n_sum
 """
-function set_neighbour_list(param,var)
+function set_neighbour_list(consts, var)
     #=
     この処理がN^2を要する
     要高速化
     領域をR_0×R_0の矩形に分割し，隣接矩形でのみ検索する
     MPI
     =#
-    for i=1:param.N
+    for i=1:consts.N
         n_col = 0  # Number of colums of n_label[i,:]
-        for j=1:param.N
+        for j=1:consts.N
             # Calculate distance between two particles
             dx = abs(var.r[i,1] - var.r[j,1])
             dx = min(dx, 1.0 - dx)
             dy = abs(var.r[i,2] - var.r[j,2])
             dy = min(dy, 1.0 - dy)
             dist = hypot(dx, dy)
-            if dist <= param.R_0
+            if dist <= 1.0
                 var.n_label[i,j] = true
                 n_col += 1
             else
@@ -364,7 +364,7 @@ set_initial_condition(const_, var_)
 progress = Progress(const_.t_step)
 # for var_.itr=1:const_.t_step
 anim = @animate for var_.itr=1:const_.t_step
-    set_neighbour_list(param_,var_)
+    set_neighbour_list(const_, var_)
     set_neighbour_orientation(param_,var_)
     set_white_noise(param_,var_)
     set_new_θ(param_,var_)
