@@ -240,7 +240,7 @@ function plot_scatter_φ(param, consts, var, stat, flag_out)
         str_t = lpad(string(var.itr), 5, "0")  # iteration number in 5 digit, left-padded string
         str_ρ = lpad(string(param.ρ ), 3, "0")
         str_η = lpad(string(param.η), 3, "0")
-        png("img/wave_ρ=$(str_ρ)_eta=$(str_η)_$(str_t).png")
+        png("img/vicsek_ρ=$(str_ρ)_eta=$(str_η)_$(str_t).png")
     end
 end
 
@@ -251,7 +251,7 @@ function make_gif(param, anim)
     str_η = lpad(string(param.η), 3, "0")
     gif(
         anim,
-        "img/wave_ρ=$(str_ρ)_eta=$(str_η).gif",
+        "img/vicsek_ρ=$(str_ρ)_eta=$(str_η).gif",
         fps=10)
 end
 
