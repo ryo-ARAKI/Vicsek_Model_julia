@@ -47,10 +47,11 @@ module mod_vicsek_model
 """
 Initialise position of particles with [0,1]×[0,1] random number.
 """
-function set_initial_condition(param,var)
-    var.r = rand(Float64, param.N, 2)
-    θ_ = rand(Float64, param.N)
-    var.θ = 2π*θ_ .- π  # [0,1] -> [-π,π]
+function set_initial_condition(consts, var)
+    tmp = rand(Float64, consts.N, 2)
+    var.r = tmp .* consts.xrange # [0, 1] -> [0, xrange]
+    tmp = rand(Float64, consts.N)
+    var.θ = 2π*tmp .- π  # [0,1] -> [-π,π]
 end
 
 """
@@ -358,7 +359,7 @@ sta_ = mod_param_var.StatisticalValues(φ,φ_)
 
 
 ## Main
-set_initial_condition(param_,var_)
+set_initial_condition(const_, var_)
 
 progress = Progress(const_.t_step)
 # for var_.itr=1:const_.t_step
