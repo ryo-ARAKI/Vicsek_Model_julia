@@ -201,10 +201,10 @@ using Plots
 """
 Output snapshot image of particle distribution and direction
 """
-function plot_scatter_φ(param,var,stat,flag_out)
-    u = Array{Float64}(undef, param.N)
-    v = Array{Float64}(undef, param.N)
-    for i=1:param.N
+function plot_scatter_φ(param, consts, var, stat, flag_out)
+    u = Array{Float64}(undef, consts.N)
+    v = Array{Float64}(undef, consts.N)
+    for i=1:consts.N
         u[i] = 0.05 * cos(var.θ[i])
         v[i] = 0.05 * sin(var.θ[i])
     end
@@ -230,7 +230,7 @@ function plot_scatter_φ(param,var,stat,flag_out)
     =#
     p2 = plot(
         stat.φ_[1:var.itr],
-        xlims = (0, param.t_step),
+        xlims = (0, consts.t_step),
         ylims = (0, 1.1),
         xaxis = ("Time step"),
         yaxis = ("Orientation parameter"),
@@ -238,40 +238,37 @@ function plot_scatter_φ(param,var,stat,flag_out)
     plot(p1,p2,size=(1260,480))
     if flag_out == true
         str_t = lpad(string(var.itr), 5, "0")  # iteration number in 5 digit, left-padded string
-        str_N = lpad(string(param.N), 3, "0")
-        str_R = lpad(string(param.R_0), 3, "0")
+        str_ρ = lpad(string(param.ρ ), 3, "0")
         str_η = lpad(string(param.η), 3, "0")
-        png("img/wave_N$(str_N)_R$(str_R)_eta$(str_η)_$(str_t).png")
+        png("img/wave_ρ=$(str_ρ)_eta=$(str_η)_$(str_t).png")
     end
 end
 
 """
 """
-function make_gif(param,anim)
-    str_N = lpad(string(param.N), 3, "0")
-    str_R = lpad(string(param.R_0), 3, "0")
+function make_gif(param, anim)
+    str_ρ = lpad(string(param.ρ ), 3, "0")
     str_η = lpad(string(param.η), 3, "0")
     gif(
         anim,
-        "img/wave_N=$(str_N)_R=$(str_R)_eta=$(str_η).gif",
+        "img/wave_ρ=$(str_ρ)_eta=$(str_η).gif",
         fps=10)
 end
 
-function plot_φ(param,var,stat)
+function plot_φ(param, consts, var, stat)
     plot(
         stat.φ_[1:var.itr],
-        xlims = (0, param.t_step),
+        xlims = (0, consts.t_step),
         ylims = (0, 1.1),
         xaxis = ("Time step"),
         yaxis = ("Orientation parameter"),
         linewidth = 2)
     xaxis!("Time step")
     yaxis!("Modulo of order parameter")
-    str_N = lpad(string(param.N), 3, "0")
-    str_R = lpad(string(param.R_0), 3, "0")
+    str_ρ = lpad(string(param.ρ ), 3, "0")
     str_η = lpad(string(param.η), 3, "0")
-    str_t = lpad(string(param.t_step), 4, "0")
-    png("img/phi_N=$(str_N)_R=$(str_R)_eta=$(str_η)_$(str_t)step.png")
+    str_t = lpad(string(consts.t_step), 4, "0")
+    png("img/phi_ρ=$(str_ρ)_eta=$(str_η)_$(str_t)step.png")
 end
 
 """
@@ -372,11 +369,11 @@ anim = @animate for var_.itr=1:const_.t_step
     set_new_rθ(var_)
     sta_.φ[var_.itr,:], sta_.φ_[var_.itr] = calc_φ(const_, var_.θ)
     # println("itr=",var_.itr, " φ[1]=", sta_.φ[var_.itr,1], " φ[2]=",sta_.φ[var_.itr,2], " φ_=",sta_.φ_[var_.itr])
-    plot_scatter_φ(param_,var_,sta_,false)
+    plot_scatter_φ(param_, const_, var_, sta_, false)
     next!(progress)
 end
 
-make_gif(param_,anim)
-plot_φ(param_,var_,sta_)
+make_gif(param_, anim)
+plot_φ(param_, const_, var_, sta_)
 println("")
 println("time averaged φ_=",sum(sta_.φ_/const_.t_step))
