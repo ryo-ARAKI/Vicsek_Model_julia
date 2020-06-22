@@ -176,15 +176,15 @@ Calculate direction parameter φ
     φ = 1/N Σ_{i=1}^N s_i^t
     s_i^t is a unit direction vector, implemented as (cosθ,sinθ)
 """
-function calc_φ(param,θ)
+function calc_φ(consts,θ)
     tmp_c = 0.0
     tmp_s = 0.0
-    for i=1:param.N
+    for i=1:consts.N
         tmp_c += cos(θ[i])
         tmp_s += sin(θ[i])
     end
-    tmp_c = tmp_c/param.N
-    tmp_s = tmp_s/param.N
+    tmp_c = tmp_c/consts.N
+    tmp_s = tmp_s/consts.N
     tmp = sqrt(tmp_c^2 + tmp_s^2)
     return [tmp_c, tmp_s], tmp
 end
@@ -370,7 +370,7 @@ anim = @animate for var_.itr=1:const_.t_step
     set_new_r(param_, const_, var_)
     set_periodic_bc(const_, var_)
     set_new_rθ(var_)
-    sta_.φ[var_.itr,:], sta_.φ_[var_.itr] = calc_φ(param_,var_.θ)
+    sta_.φ[var_.itr,:], sta_.φ_[var_.itr] = calc_φ(const_, var_.θ)
     # println("itr=",var_.itr, " φ[1]=", sta_.φ[var_.itr,1], " φ[2]=",sta_.φ[var_.itr,2], " φ_=",sta_.φ_[var_.itr])
     plot_scatter_φ(param_,var_,sta_,false)
     next!(progress)
