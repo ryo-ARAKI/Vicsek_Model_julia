@@ -93,17 +93,16 @@ Calculate one particle's neighbour orientation
 ψ will have [-π,π] value defined as
     ψ = Arg[Σ_j n_ij θ_j].
 """
-function set_neighbour_orientation(param,var)
-    # var.ψ = zeros(param.N)
+function set_neighbour_orientation(consts, var)
     #=
     この処理がN^2を要する
     要高速化
     領域をR_0×R_0の矩形に分割し，隣接矩形でのみ検索する
     MPI
     =#
-    for i=1:param.N
+    for i=1:consts.N
         tmpx = tmpy = 0.0
-        for j=1:param.N
+        for j=1:consts.N
             tmpx += var.n_label[i,j] * cos(var.θ[j])
             tmpy += var.n_label[i,j] * sin(var.θ[j])
         end
@@ -365,7 +364,7 @@ progress = Progress(const_.t_step)
 # for var_.itr=1:const_.t_step
 anim = @animate for var_.itr=1:const_.t_step
     set_neighbour_list(const_, var_)
-    set_neighbour_orientation(param_,var_)
+    set_neighbour_orientation(const_, var_)
     set_white_noise(param_,var_)
     set_new_θ(param_,var_)
     set_new_r(param_,var_)
