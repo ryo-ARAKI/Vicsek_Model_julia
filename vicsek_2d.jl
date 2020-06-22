@@ -148,10 +148,10 @@ Ensure periodic boundary condition
 function set_periodic_bc(consts, var)
     for i=1:consts.N
         for j=1:2
-            if var.r_new[i,j] > 1.0
-                var.r_new[i,j] -= 1.0
+            if var.r_new[i,j] > consts.xrange
+                var.r_new[i,j] -= consts.xrange
             elseif var.r_new[i,j] < 0
-                var.r_new[i,j] += 1.0
+                var.r_new[i,j] += consts.xrange
             end
         end
     end
@@ -212,8 +212,8 @@ function plot_scatter_φ(param, consts, var, stat, flag_out)
         var.r[:,1], var.r[:,2],
         quiver=(u[:], v[:]),
         aspect_ratio = 1,
-        xlims = (0.0, 1.0),
-        ylims = (0.0, 1.0),
+        xlims = (0.0, consts.xrange),
+        ylims = (0.0, consts.xrange),
         xaxis=nothing,
         yaxis=nothing,
         color=1
